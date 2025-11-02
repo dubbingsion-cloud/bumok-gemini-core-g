@@ -2,6 +2,7 @@ import streamlit as st
 from google import genai
 import yaml 
 import requests 
+from PIL import Image # 이미지 처리를 위해 PIL 라이브러리 (Pillow) 사용
 
 # --- 1. 환경 설정 및 키 로드 ---
 try:
@@ -19,10 +20,27 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- 3. 사이드바: 호칭 및 말투 설정 기능 ---
+# --- 3. 사이드바: 호칭, 말투, 그리고 프로필 설정 기능 ---
 
 with st.sidebar:
     st.header("⚙️ 맞춤 설정")
+    
+    # 챗봇 프로필 이미지 업로드 기능 추가
+    st.markdown("### 🖼️ AI 프로필 이미지 설정")
+    uploaded_file = st.file_uploader(
+        "AI 프로필로 사용할 이미지 파일을 업로드하세요.",
+        type=['png', 'jpg', 'jpeg']
+    )
+    
+    # 세션 상태에 이미지 정보 저장 및 표시
+    if uploaded_file is not None:
+        st.session_state['ai_avatar'] = uploaded_file.getvalue()
+        st.image(uploaded_file, caption="현재 적용된 AI 프로필", use_column_width=True)
+    elif 'ai_avatar' not in st.session_state:
+        # 기본 아바타 설정 (기본 아이콘 사용)
+        st.session_state['ai_avatar'] = 'robot' # Streamlit 기본 아이콘
+
+    st.markdown("---")
     
     # 호칭 설정
     user_appellation = st.text_input(
@@ -50,7 +68,7 @@ with st.sidebar:
     st.markdown("---")
     st.info("설정을 변경하거나 초기화 버튼을 누르면 새로운 대화부터 적용됩니다.")
 
-# --- 4. 시스템 지침 생성 (맞춤 기능 및 분석/공감 기능 구현) ---
+# --- 4. 시스템 지침 생성 (분석/공감 기능 유지) ---
 SYSTEM_PROMPT = f"""
 당신은 사용자에게 친절하고 교육적인 정보를 제공하는 AI 친구 '코어G'입니다.
 당신의 역할은 **질문의 핵심 내용을 분석**하고, **사용자의 상황과 감정에 깊이 공감**하며, 이후 **맞춤형 교육 컨설팅 답변**을 제공하는 것입니다.
@@ -78,11 +96,14 @@ if "messages" not in st.session_state:
 # --- 6. 챗봇 UI 렌더링 ---
 
 st.title("AI친구, 코어G")
-st.caption("✅ 분석/공감, 맞춤형 말투, 대화 이력 기억 기능이 모두 활성화되었습니다.")
+st.caption("✅ 프로필 설정, 분석/공감, 대화 이력 기억 기능이 모두 활성화되었습니다.")
 
-# 기존 대화 표시
+# 챗 메시지 표시
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
+    # 챗봇 메시지에만 설정된 아바타 적용
+    avatar_to_use = st.session_state.get('ai_avatar') if message["role"] == "assistant" else "user"
+    
+    with st.chat_message(message["role"], avatar=avatar_to_use):
         st.markdown(message["content"])
 
 # 사용자 입력 처리
@@ -92,15 +113,15 @@ if prompt := st.chat_input("질문을 입력하세요..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    with st.chat_message("assistant"):
-        # 2. ChatSession을 통해 메시지 전송 (이력 및 시스템 역할 자동 전달)
+    with st.chat_message("assistant", avatar=st.session_state.get('ai_avatar')):
+        # 2. ChatSession을 통해 메시지 전송
         try:
-            response = st.session_state.chat_session.send_message(prompt)
+            response = st.session_session.chat_session.send_message(prompt)
             
             # 3. 챗봇 응답 기록 및 표시
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
             
         except Exception as e:
-            st.error("Gemini API 호출 중 오류가 발생했습니다. API 키나 네트워크 연결을 확인해주세요.")
+            st.error("Gemini API 호출 중 오류가 발생했습니다. 잠시 후 다시 시도하거나 설정을 확인해주세요.")
             st.session_state.messages.append({"role": "assistant", "content": "죄송합니다. API 호출 중 오류가 발생했습니다."})
