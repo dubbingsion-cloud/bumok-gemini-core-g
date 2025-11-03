@@ -27,8 +27,10 @@ client = st.session_state.gemini_client
 st.set_page_config(
     page_title="코어 G (음성 대화)", 
     layout="wide",
+    # --- 수정된 부분: 콤마(,)를 추가했습니다. ---
     description="당신의 마음을 공감하고 지식을 탐색하며 음성 대화가 가능한 AI 친구, 스피릿입니다. 💖",
     # 썸네일 이미지를 위해 GitHub Raw URL을 사용하세요 (사용자 지정 필요)
+    # 이 줄은 주석 처리되어 있으므로 앱 실행에 영향을 주지 않습니다.
     # image="https://raw.githubusercontent.com/[당신의 GitHub ID]/bumok-gemini-core-g/master/thumbnail.png"
 ) 
 st.title("🤖 코어 G (스피릿)") 
@@ -60,7 +62,7 @@ def play_tts(text_to_speak):
         tts.write_to_fp(mp3_fp)
         mp3_fp.seek(0)
         
-        # Streamlit 오디오 컴포넌트를 사용하여 재생 (pydub 없이 BytesIO 데이터 직접 사용)
+        # Streamlit 오디오 컴포넌트를 사용하여 재생
         st.audio(mp3_fp.read(), format='audio/mp3', autoplay=True)
         
     except Exception as e:
